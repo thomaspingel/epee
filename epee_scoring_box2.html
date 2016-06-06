@@ -2,6 +2,7 @@
 <head>
 <title>Pingel's Epee Scoring Box</title>
 <style>
+
 	#left_on_target {
 		background-color: black;
 		}
@@ -26,8 +27,10 @@
 	var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 	var buzzer = audioCtx.createOscillator();
 	var gainNode = audioCtx.createGain();
+
 	buzzer.connect(gainNode);
 	gainNode.connect(audioCtx.destination);
+
 	// set options for the oscillator
 	buzzer.type = 'sine';
 	buzzer.frequency.value = 500; // value in hertz, should be between about 500 to 2000
@@ -35,50 +38,112 @@
 	
 	// audio is initially off
 	audioCtx.suspend();
+
+
 </script>
+
 <script>
 	<!-- THE FENCING BOX -->
 	<!-- key assignments -->
 	<!-- a to d: 65 to 68 -->
 	<!-- arrow keys, clockwise left to down, 37 to 40 -->
-	var LA_LB = 37  
-	var LA_RB = 38
-	var RA_RB = 39
-	var RA_LB = 40
-	<!-- wirestates, not all are monitored -->
-	var la_rb = false;
-	var ra_lb = false;
+	<!-- Left B is 37 --> <!-- Right B is 68 -->
+	var LA = 39
+	var LB = 37
+	var LC = 38
+	var RA = 71
+	var RB = 68
+	var RC = 82
+	
+	<!-- wirestates -->
+	var la = false;
+	var lb = false;
+	var lc = false;
+	var ra = false;
+	var rb = false;
+	var rc = false;
+
+	slop_time = 2;
+	stabilize_time = 5	;
 	light_time = 2000;
-	light_on = false;
 	last_left = 0.0;
 	last_right = 0.0;
 	epee_lockout_time = 45 <!-- Can be 40 to 50 ms -->
+	light_on = false;
+	
+	left_hits = 0;
+	left_tries = 0;
+
 	LOT = $("#left_on_target")
 	ROT = $("#right_on_target")
-	$(document).keydown(function(e){
-		if (e.keyCode==LA_RB) la_rb = true;
-		if (e.keyCode==RA_LB) ra_lb = true;
-		
-		if (e.keyCode==LA_LB && !la_rb) {
+	
+	last_la = 0;
+	last_lb = 0;
+	last_lc = 0;
+	last_ra = 0;
+	last_rb = 0;
+	last_rc = 0;
+	
+	function interpretLights(keyCode) {
+		if (keyCode==LA && lb) {
 			last_left = new Date().getTime();
+			turnOnLight('left_on_target');
 			console.log("time: ",last_left - last_right)
-			if (last_left - last_right <= epee_lockout_time || !light_on) {
-				turnOnLight('left_on_target');
-			}
 		}
-		if (e.keyCode==RA_RB && !ra_lb) {
+		else if (keyCode==RA && rb) {
 			last_right = new Date().getTime();
+			turnOnLight('right_on_target');
 			console.log("time: ",last_right - last_left)
-			if (last_right - last_left <= epee_lockout_time || !light_on) {
-				turnOnLight('right_on_target');
+		}
+	}
+	
+	function interpretWireState(key){
+		if (key==LA) {
+			left_tries = left_tries + 1;
+			if (Math.abs(last_la-last_lb) < slop_time) {
+				console.log("that was an LA")
+				left_hits = left_hits + 1;
 			}
 		}
-		console.log("key:",e.keyCode)
+		
+	}
+
+
+	$(document).keydown(function(e){
+		key = e.keyCode;
+		now = new Date().getTime();
+		if (key==LA) last_la = now;
+		if (key==LB) last_lb = now;
+		if (key==LC) last_lc = now;
+		if (key==RA) last_ra = now;
+		if (key==RB) last_rb = now;
+		if (key==RC) last_rc = now;
+		
+		console.log("key:",key)
+		console.log("time is:",now)
+		if (key==LA) left_tries++
+		
+		if (Math.abs(last_la-last_lb)<=slop_time) {
+			left_hits++
+			console.log("hit")
+		}
+
+		// if (key==LA || key==RA) setTimeout(interpretWireState(key),stabilize_time);
+
+		
 	});
+
 	$(document).keyup(function(e){
-		if (e.keyCode==LA_RB) la_rb = false;
-		if (e.keyCode==RA_LB) ra_lb = false;
+		if (e.keyCode==LA) la = false;
+		if (e.keyCode==LB) lb = false;
+		if (e.keyCode==LC) lc = false;
+		if (e.keyCode==RA) ra = false;
+		if (e.keyCode==RB) rb = false;
+		if (e.keyCode==RC) rc = false;
 	});
+
+
+
 	function turnOnLight(light) {
 		if (light=='left_on_target') $("#left_on_target").css('background-color','red');
 		if (light=='right_on_target') $("#right_on_target").css('background-color','green');
@@ -88,12 +153,14 @@
 			light_on = true;
 		}
 	}
+
 	function turnOffLights(){
 		LOT.css('background-color','black');
 		ROT.css('background-color','black');
 		audioCtx.suspend();
 		light_on = false
 	}
+
 </script>
 </body>
 </html>
