@@ -54,41 +54,43 @@
 	var RA = 71
 	var RB = 68
 	var RC = 82
-	
-	<!-- wirestates -->
-	var la = false;
-	var lb = false;
-	var lc = false;
-	var ra = false;
-	var rb = false;
-	var rc = false;
 
-	slop_time = 2;
-	stabilize_time = 5	;
+	// Times in ms since the last signal
+	last_la = 0
+	last_lb = 1000
+	last_lc = 2000
+	last_ra = 3000
+	last_rb = 4000
+	last_rc = 5000
+
+	slop_time = 20;
 	light_time = 2000;
 	last_left = 0.0;
 	last_right = 0.0;
 	epee_lockout_time = 45 <!-- Can be 40 to 50 ms -->
-	light_on = false;
 	left_on = false;
 	right_on = false;
 	
 	LOT = $("#left_on_target")
 	ROT = $("#right_on_target")
 	
-	// Times in ms since the last signal
-	last_la = 0;
-	last_lb = 0;
-	last_lc = 0;
-	last_ra = 0;
-	last_rb = 0;
-	last_rc = 0;
 	
 	function interpretLights(keyCode) {
-		if (keyCode==LA && !left_on) {
-			last_left = new Date().getTime();
-			turnOnLight('left_on_target');
+		if (Math.abs(last_lb - last_rb) > slop_time) {
+			if (keyCode==LA && !left_on) {
+				last_left = Math.min(last_la,last_lb);
+				console.log("assigning new last left!")
+				if (!right_on || last_left - last_right <= epee_lockout_time) turnOnLight('left_on_target');
+			}
+			if (keyCode==RA && !right_on) {
+				last_right = Math.min(last_ra,last_rb);
+				console.log("assigning new last right!")
+				if (!left_on || last_right - last_left <= epee_lockout_time) turnOnLight('right_on_target');
+			}
+			console.log("HIT!  Time difference: ",Math.abs(last_left - last_right))
 		}
+		else console.log('both grounds detected')
+		
 	}
 
 	$(document).keydown(function(e){
@@ -103,29 +105,28 @@
 		
 		console.log("key:",key)
 		console.log("time is:",now)
-		if (Math.abs(last_la-last_lb)<=slop_time) interpretLights(LA);
+		if ((Math.abs(last_la-last_lb) <= slop_time) && (now-last_la <= slop_time)) {
+			interpretLights(LA);
+		}
+		if ((Math.abs(last_ra-last_rb) <= slop_time) && (now-last_ra <= slop_time) ) {
+			interpretLights(LA);
+		} 
 
 	});
-
-	$(document).keyup(function(e){
-		if (e.keyCode==LA) la = false;
-		if (e.keyCode==LB) lb = false;
-		if (e.keyCode==LC) lc = false;
-		if (e.keyCode==RA) ra = false;
-		if (e.keyCode==RB) rb = false;
-		if (e.keyCode==RC) rc = false;
-	});
-
 
 
 	function turnOnLight(light) {
-		console.log("Turning on light.")
-		if (light=='left_on_target') $("#left_on_target").css('background-color','red');
-		if (light=='right_on_target') $("#right_on_target").css('background-color','green');
-		if (!light_on) {
+		if (!left_on && !right_on) {
 			setTimeout(turnOffLights, light_time);
 			audioCtx.resume();
-			light_on = true;
+		}
+		if (light=='left_on_target') {
+			left_on = true;
+			$("#left_on_target").css('background-color','red');
+		}
+		if (light=='right_on_target') {
+			right_on = true;
+			$("#right_on_target").css('background-color','green');
 		}
 	}
 
@@ -135,7 +136,6 @@
 		audioCtx.suspend();
 		left_on = false
 		right_on = false
-		light_on = false
 	}
 
 </script>
