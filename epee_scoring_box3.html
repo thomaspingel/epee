@@ -76,7 +76,7 @@
 	
 	
 	function interpretLights(keyCode) {
-		if (Math.abs(last_lb - last_rb) > slop_time) {
+		if (Math.abs(last_lb - last_rb) > slop_time || Math.abs(last_la - last_ra) <= slop_time) {
 			if (keyCode==LA && !left_on) {
 				last_left = Math.min(last_la,last_lb);
 				console.log("assigning new last left!")
