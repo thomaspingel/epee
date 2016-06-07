@@ -1,0 +1,99 @@
+<html>
+<head>
+<title>Pingel's Epee Scoring Box</title>
+<style>
+	#left_on_target {
+		background-color: black;
+		}
+	#right_on_target {
+		background-color: black;
+		}
+</style>
+ <script src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.12.2.min.js"></script>
+ <!-- <script src="jquery-1.12.2.min.js"></script> -->
+</head>
+<body>
+<table height="100%" width="100%">
+<tr>
+<td id="left_on_target"></td>
+<td id="right_on_target"></td>
+</tr>
+</table>
+
+<script>
+	<!-- TONE GENERATION -->
+	<!-- Modeled after Violent Theremin (https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API/Using_Web_Audio_API) -->
+	var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+	var buzzer = audioCtx.createOscillator();
+	var gainNode = audioCtx.createGain();
+	buzzer.connect(gainNode);
+	gainNode.connect(audioCtx.destination);
+	// set options for the oscillator
+	buzzer.type = 'sine';
+	buzzer.frequency.value = 500; // value in hertz, should be between about 500 to 2000
+	buzzer.start(0);
+	
+	// audio is initially off
+	audioCtx.suspend();
+</script>
+<script>
+	<!-- THE FENCING BOX -->
+	<!-- key assignments -->
+	<!-- a to d: 65 to 68 -->
+	<!-- arrow keys, clockwise left to down, 37 to 40 -->
+	var LA_LB = 37  
+	var LA_RB = 38
+	var RA_RB = 39
+	var RA_LB = 40
+	<!-- wirestates, not all are monitored -->
+	var la_rb = false;
+	var ra_lb = false;
+	light_time = 2000;
+	light_on = false;
+	last_left = 0.0;
+	last_right = 0.0;
+	epee_lockout_time = 45 <!-- Can be 40 to 50 ms -->
+	LOT = $("#left_on_target")
+	ROT = $("#right_on_target")
+	$(document).keydown(function(e){
+		if (e.keyCode==LA_RB) la_rb = true;
+		if (e.keyCode==RA_LB) ra_lb = true;
+		
+		if (e.keyCode==LA_LB && !la_rb) {
+			last_left = new Date().getTime();
+			console.log("time: ",last_left - last_right)
+			if (last_left - last_right <= epee_lockout_time || !light_on) {
+				turnOnLight('left_on_target');
+			}
+		}
+		if (e.keyCode==RA_RB && !ra_lb) {
+			last_right = new Date().getTime();
+			console.log("time: ",last_right - last_left)
+			if (last_right - last_left <= epee_lockout_time || !light_on) {
+				turnOnLight('right_on_target');
+			}
+		}
+		console.log("key:",e.keyCode)
+	});
+	$(document).keyup(function(e){
+		if (e.keyCode==LA_RB) la_rb = false;
+		if (e.keyCode==RA_LB) ra_lb = false;
+	});
+	function turnOnLight(light) {
+		if (light=='left_on_target') $("#left_on_target").css('background-color','red');
+		if (light=='right_on_target') $("#right_on_target").css('background-color','green');
+		if (!light_on) {
+			setTimeout(turnOffLights, light_time);
+			audioCtx.resume();
+			light_on = true;
+		}
+	}
+	function turnOffLights(){
+		LOT.css('background-color','black');
+		ROT.css('background-color','black');
+		audioCtx.suspend();
+		light_on = false
+	}
+</script>
+</body>
+</html>
