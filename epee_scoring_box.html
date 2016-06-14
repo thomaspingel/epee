@@ -48,18 +48,16 @@
 	<!-- a to d: 65 to 68 -->
 	<!-- arrow keys, clockwise left to down, 37 to 40 -->
 	<!-- Left B is 37 --> <!-- Right B is 68 -->
-	var LA = 39
-	var LB = 37
-	var LC = 38
-	var RA = 71
-	var RB = 68
-	var RC = 82
+	var LA = 38;
+	var LC = 39;
+	var RA = 40;
+	var RC = 37;
 
 	// Times in ms since the last signal
-	last_la = last_lb = last_lc = last_ra = last_rb = last_rc = NaN
-	last_left = last_right = NaN
+	last_la = last_lc = last_ra = last_rc = 0
+	last_left = last_right = 0
 
-	slop_time = 20;
+	slop_time = 25;
 	light_time = 2000;
 	epee_lockout_time = 45 <!-- Can be 40 to 50 ms -->
 	left_on = false;
@@ -68,24 +66,25 @@
 	LOT = $("#left_on_target")
 	ROT = $("#right_on_target")
 	
-
 	function interpretEpee(keyCode){
+		if (keyCode==LA && !left_on && (!right_on || last_la - last_right <= epee_lockout_time) && Math.abs(last_la-last_rc) > slop_time) {
+			console.log("LEFT HIT DETECTED.  CHECKING FOR GROUND.")
+			setTimeout(lightWaitPeriod,slop_time,'left_on_target');
+		}
+		else if (keyCode==RA && !right_on && (!left_on || last_ra - last_left <= epee_lockout_time) && Math.abs(last_ra-last_lc) > slop_time) { 
+			console.log("RIGHT HIT DETECTED.  CHECKING FOR GROUND.")
+			setTimeout(lightWaitPeriod,slop_time,'right_on_target');
+		}
+	}
+	
+	function lightWaitPeriod(light) {
 		now = new Date().getTime();
-		// now-last_la <= epee_lockout_time      -> Did we get an A signal just now?
-		// now-last_lb <= epee_lockout_time      -> Did we get a B signal just now?
-		// !left_on 						     -> Do we already know about this hit?
-		// Math.abs(last_la-last_rc) > slop_time -> Did you hit the bell guard?
-		if (now-last_la <= epee_lockout_time && now-last_lb <= epee_lockout_time && !left_on && Math.abs(last_la-last_rc) > slop_time) {
-			last_left = last_la
-			console.log("Left hit at ",last_left)
-			if (!right_on || last_left - last_right <= epee_lockout_time) turnOnLight('left_on_target')
-		}
-		if (now-last_ra <= epee_lockout_time && now-last_rb <= epee_lockout_time && !right_on && Math.abs(last_ra-last_lc) > slop_time) {
-			last_right = last_ra
-			console.log("Right hit at ",last_right)
-			if (!left_on || last_right - last_left <= epee_lockout_time) turnOnLight('right_on_target')
-		}
-		console.log("time difference between hits:",Math.abs(last_left - last_right))
+		if (light=='left_on_target')
+			if (Math.abs(last_la-last_rc) > slop_time) turnOnLight(light);
+			else console.log("LEFT HIT WAS TO BELL GUARD.")
+		if (light=='right_on_target')
+			if (Math.abs(last_ra-last_lc) > slop_time) turnOnLight(light);
+			else console.log("RIGHT HIT WAS TO BELL GUARD.")
 	}
 
 	$(document).keydown(function(e){
@@ -93,8 +92,6 @@
 		key = e.keyCode;
 		if (key==LA) last_la = now;
 		else if (key==RA) last_ra = now;
-		else if (key==LB) last_lb = now;
-		else if (key==RB) last_rb = now;
 		else if (key==LC) last_lc = now;
 		else if (key==RC) last_rc = now;
 		
@@ -102,20 +99,24 @@
 		interpretEpee(key);
 	});
 
-
 	function turnOnLight(light) {
 		if (!left_on && !right_on) {
 			setTimeout(turnOffLights, light_time);
 			audioCtx.resume();
 		}
 		if (light=='left_on_target') {
+			last_left = last_la;
 			left_on = true;
 			$("#left_on_target").css('background-color','red');
+			console.log("LEFT HIT AT",last_left)
 		}
 		if (light=='right_on_target') {
+			last_right = last_ra
 			right_on = true;
 			$("#right_on_target").css('background-color','green');
+			console.log("RIGHT HIT AT",last_right)
 		}
+		console.log("Time difference between hits was",Math.abs(last_la - last_ra))
 	}
 
 	function turnOffLights(){
@@ -124,6 +125,7 @@
 		audioCtx.suspend();
 		left_on = false
 		right_on = false
+		console.log('--------------------------------------');
 	}
 
 </script>
