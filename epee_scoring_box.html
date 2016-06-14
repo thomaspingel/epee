@@ -83,7 +83,7 @@
 			if (Math.abs(last_la-last_rc) > slop_time) turnOnLight(light);
 			else console.log("LEFT HIT WAS TO BELL GUARD.")
 		if (light=='right_on_target')
-			if (Math.abs(last_ra-last_lc) > slop_time) turnOnLight(light);
+			if (Math.abs(last_ra-last_lc) > slop_time) turnOnLight(light);	
 			else console.log("RIGHT HIT WAS TO BELL GUARD.")
 	}
 
@@ -116,7 +116,7 @@
 			$("#right_on_target").css('background-color','green');
 			console.log("RIGHT HIT AT",last_right)
 		}
-		console.log("Time difference between hits was",Math.abs(last_la - last_ra))
+		// console.log("Time difference between hits was",Math.abs(last_la - last_ra))
 	}
 
 	function turnOffLights(){
