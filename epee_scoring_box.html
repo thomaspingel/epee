@@ -27,13 +27,14 @@
 	var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 	var buzzer = audioCtx.createOscillator();
 	var gainNode = audioCtx.createGain();
+	gainNode.gain.value = 1000;  // Too much?
 
 	buzzer.connect(gainNode);
 	gainNode.connect(audioCtx.destination);
 
 	// set options for the oscillator
 	buzzer.type = 'sine';
-	buzzer.frequency.value = 500; // value in hertz, should be between about 500 to 2000
+	buzzer.frequency.value = 2000; // value in hertz, should be between about 500 (low tone) to 2000 (high tone)
 	buzzer.start(0);
 	
 	// audio is initially off
