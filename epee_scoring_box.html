@@ -211,7 +211,7 @@
 		return (m + ":" + (s < 10 ? "0" : "") + s + (d < 1 ? "." + (ds < 10 ? "0" : "") + ds: ""))
 	}
 	
-	setInterval(timer,.1);	
+	time_object = setInterval(timer,.1);	
 	function timer(){
 		if (timer_running) {
 			now = new Date().getTime();
@@ -224,6 +224,7 @@
 			timer_running = false;
 			audioCtx.resume();
 			setTimeout(turnOffBuzzer,light_time);
+			clearInterval(timerObject)
 		}
 		document.getElementById("timer").innerHTML = format_time(time_remaining);
 	}
