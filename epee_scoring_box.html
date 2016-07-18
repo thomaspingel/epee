@@ -2,16 +2,19 @@
 <head>
 <title>Pingel's Epee Scoring Box</title>
 <style>
-
-	.score {
+	body {
+		background-color: black;
 		color: yellow;
 		font-size: 10em;
+		text-align: center;
 	}
 	.on_target {
 		background-color: black;
 		width: 50%;
+		height: 80%;
 		text-align: center;
-	}
+		font-size: 10em;
+    }
 
 
 </style>
@@ -19,7 +22,8 @@
  <!-- <script src="jquery-1.12.2.min.js"></script> -->
 </head>
 <body>
-<table height="100%" width="100%">
+<div id = "timer" style="height:20%; width:100%" onclick="setTime()"></div>
+<table height="80%" width="100%">
 <tr>
 <td id="left_on_target" class="score on_target">0</td>
 <td id="right_on_target" class="score on_target">0</td>
@@ -67,6 +71,13 @@
 	var SHIFTKEY = 99999;
 	var shifted = false;
 	
+	var TIMER = 66;
+	time_remaining = 180.0;
+	start_time = 0.0;
+	last_time = 0.0;
+	timer_running = false;
+	var timer_object = [];
+
 	var left_score = 0
 	var right_score = 0
 	var last_score_left = [0,0];
@@ -121,6 +132,10 @@
 			(last_score_right.shift());
 			last_score_right.push(now);
 		}
+		else if (key==TIMER) {
+			if (!timer_running) last_time = now;
+			timer_running = !timer_running;
+		}
 		console.log("key ",key," at time ",now)
 		interpretEpee(key);
 	});
@@ -159,7 +174,7 @@
 		}
 		// console.log("Time difference between hits was",Math.abs(last_la - last_ra))
 	}
-
+	
 	function turnOffLights(){
 		LOT.css('background-color','black');
 		ROT.css('background-color','black');
@@ -181,6 +196,43 @@
 		document.getElementById("left_on_target").innerHTML = left_score;
 		document.getElementById("right_on_target").innerHTML = right_score;
 	}
+	
+	function turnOffBuzzer(){
+		audioCtx.suspend();
+	}
+	
+	
+	function format_time(d) {
+		d = Number(d);
+		var h = Math.floor(d / 3600);
+		var m = Math.floor(d % 3600 / 60);
+		var s = Math.floor(d % 3600 % 60);
+		var ds = Math.ceil(100*d);
+		return (m + ":" + (s < 10 ? "0" : "") + s + (d < 1 ? "." + (ds < 10 ? "0" : "") + ds: ""))
+	}
+	
+	setInterval(timer,.1);	
+	function timer(){
+		if (timer_running) {
+			now = new Date().getTime();
+			time_elapsed = (now - last_time) / 1000;
+			last_time = now;
+			time_remaining = time_remaining - time_elapsed;
+		}
+		if (time_remaining <= 0) {
+			time_remaining = 0;
+			timer_running = false;
+			audioCtx.resume();
+			setTimeout(turnOffBuzzer,light_time);
+		}
+		document.getElementById("timer").innerHTML = format_time(time_remaining);
+	}
+	
+	function setTime(){
+		var t = prompt("Input new time m:ss");
+		time_remaining = Number(t.split(':')[0])*60 + Number(t.split(':')[1])
+	}
+
 	
 </script>
 </body>
