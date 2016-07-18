@@ -64,13 +64,13 @@
 	
 	var SCORELEFT = 33;
 	var SCORERIGHT = 34;
-	var SHIFTKEY = 66;
+	var SHIFTKEY = 99999;
 	var shifted = false;
 	
 	var left_score = 0
 	var right_score = 0
-	var last_score_left = 0;
-	var last_score_right = 0;
+	var last_score_left = [0,0];
+	var last_score_right = [0,0];
 
 	// Times in ms since the last signal  //TODO add B lines
 	last_la = last_lc = last_ra = last_rc = 0
@@ -113,6 +113,14 @@
 		else if (key==RA) last_ra = now;
 		else if (key==LC) last_lc = now;
 		else if (key==RC) last_rc = now;
+		else if (key==SCORELEFT) {
+			(last_score_left.shift()); 
+			last_score_left.push(now);
+		}
+		else if (key==SCORERIGHT) {
+			(last_score_right.shift());
+			last_score_right.push(now);
+		}
 		console.log("key ",key," at time ",now)
 		interpretEpee(key);
 	});
@@ -129,7 +137,6 @@
 		else if (key==SHIFTKEY) {
 			shifted=!shifted;
 		}
-		
 	});
 	
 
@@ -163,21 +170,18 @@
 	}
 	
 	function interpretScore(key){
-		var amount = 1;
-		if (shifted) {
-			amount = -amount;
-			shifted = false;
+		if (key==SCORELEFT) {
+			if (last_score_left[1] - last_score_left[0] > 75) left_score = left_score + 1;
+			else left_score = left_score - 1;
 		}
-		if (key==SCORELEFT) left_score = left_score + amount;
-		else if (key==SCORERIGHT) right_score = right_score + amount;
+		else if (key==SCORERIGHT) {
+			if (last_score_right[1] - last_score_right[0] > 75) right_score = right_score + 1;
+			else right_score = right_score - 1;
+		}
 		document.getElementById("left_on_target").innerHTML = left_score;
 		document.getElementById("right_on_target").innerHTML = right_score;
 	}
 	
-	function expireShift(){
-		shifted=false;
-	}
-
 </script>
 </body>
 </html>
