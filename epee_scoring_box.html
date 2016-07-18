@@ -3,12 +3,17 @@
 <title>Pingel's Epee Scoring Box</title>
 <style>
 
-	#left_on_target {
+	.score {
+		color: yellow;
+		font-size: 10em;
+	}
+	.on_target {
 		background-color: black;
-		}
-	#right_on_target {
-		background-color: black;
-		}
+		width: 50%;
+		text-align: center;
+	}
+
+
 </style>
  <script src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.12.2.min.js"></script>
  <!-- <script src="jquery-1.12.2.min.js"></script> -->
@@ -16,10 +21,11 @@
 <body>
 <table height="100%" width="100%">
 <tr>
-<td id="left_on_target"></td>
-<td id="right_on_target"></td>
+<td id="left_on_target" class="score on_target">0</td>
+<td id="right_on_target" class="score on_target">0</td>
 </tr>
 </table>
+
 
 <script>
 	<!-- TONE GENERATION -->
@@ -49,12 +55,24 @@
 	<!-- a to d: 65 to 68 -->
 	<!-- arrow keys, clockwise left to down, 37 to 40 -->
 	<!-- Left B is 37 --> <!-- Right B is 68 -->
-	var LA = 38;
-	var LC = 39;
-	var RA = 40;
-	var RC = 37;
+	var LA = 71;
+	var LB = 68
+	var LC = 82;
+	var RA = 70;
+	var RB = 65;
+	var RC = 83;
+	
+	var SCORELEFT = 33;
+	var SCORERIGHT = 34;
+	var SHIFTKEY = 66;
+	var shifted = false;
+	
+	var left_score = 0
+	var right_score = 0
+	var last_score_left = 0;
+	var last_score_right = 0;
 
-	// Times in ms since the last signal
+	// Times in ms since the last signal  //TODO add B lines
 	last_la = last_lc = last_ra = last_rc = 0
 	last_left = last_right = 0
 
@@ -95,10 +113,25 @@
 		else if (key==RA) last_ra = now;
 		else if (key==LC) last_lc = now;
 		else if (key==RC) last_rc = now;
-		
 		console.log("key ",key," at time ",now)
 		interpretEpee(key);
 	});
+	
+	$(document).keyup(function(e){
+		now = new Date().getTime();
+		key = e.keyCode;
+		if (key==SCORELEFT) {
+			interpretScore(key);
+		}
+		else if (key==SCORERIGHT) {
+			interpretScore(key);
+		}
+		else if (key==SHIFTKEY) {
+			shifted=!shifted;
+		}
+		
+	});
+	
 
 	function turnOnLight(light) {
 		if (!left_on && !right_on) {
@@ -127,6 +160,22 @@
 		left_on = false
 		right_on = false
 		console.log('--------------------------------------');
+	}
+	
+	function interpretScore(key){
+		var amount = 1;
+		if (shifted) {
+			amount = -amount;
+			shifted = false;
+		}
+		if (key==SCORELEFT) left_score = left_score + amount;
+		else if (key==SCORERIGHT) right_score = right_score + amount;
+		document.getElementById("left_on_target").innerHTML = left_score;
+		document.getElementById("right_on_target").innerHTML = right_score;
+	}
+	
+	function expireShift(){
+		shifted=false;
 	}
 
 </script>
