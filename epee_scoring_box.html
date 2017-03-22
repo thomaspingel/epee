@@ -34,6 +34,7 @@
 <script>
 	<!-- TONE GENERATION -->
 	<!-- Modeled after Violent Theremin (https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API/Using_Web_Audio_API) -->
+	
 	var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 	var buzzer = audioCtx.createOscillator();
 	var gainNode = audioCtx.createGain();
@@ -52,6 +53,24 @@
 
 
 </script>
+
+<script>
+	var button0 = false;
+	
+	var interval = setInterval(gameloop, 1000);
+	
+	function gameloop() {
+	
+		var gp = navigator.getGamepads()[0];	
+
+		console.log(gp.buttons[0].pressed);
+		console.log(gp.buttons[1].pressed);
+		console.log(gp.buttons[2].pressed);
+		console.log(gp.buttons[3].pressed);
+	}
+
+</script>
+
 
 <script>
 	<!-- THE FENCING BOX -->
@@ -116,6 +135,7 @@
 			if (Math.abs(last_ra-last_lc) > slop_time) turnOnLight(light);	
 			else console.log("RIGHT HIT WAS TO BELL GUARD.")
 	}
+	
 
 	$(document).keydown(function(e){
 		now = new Date().getTime();
