@@ -34,6 +34,7 @@
 <script>
 	<!-- TONE GENERATION -->
 	<!-- Modeled after Violent Theremin (https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API/Using_Web_Audio_API) -->
+	
 	var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 	var buzzer = audioCtx.createOscillator();
 	var gainNode = audioCtx.createGain();
@@ -52,6 +53,96 @@
 
 
 </script>
+
+<script>
+/*
+	var LA = 71;
+	var LB = 68
+	var LC = 82;
+	var RA = 70;
+	var RB = 65;
+	var RC = 83;
+	
+	var SCORELEFT = 33;
+	var SCORERIGHT = 34;
+	var SHIFTKEY = 99999;
+	var shifted = false;
+	
+	var TIMER = 66;
+	time_remaining = 180.0;
+	start_time = 0.0;
+	last_time = 0.0;
+	timer_running = false;
+	var timer_object = [];
+
+	var left_score = 0
+	var right_score = 0
+	var last_score_left = [0,0];
+	var last_score_right = [0,0];
+
+	// Times in ms since the last signal  //TODO add B lines
+	last_la = last_lc = last_ra = last_rc = 0
+	last_left = last_right = 0
+
+	slop_time = 25;
+	light_time = 2000;
+	epee_lockout_time = 45 <!-- Can be 40 to 50 ms -->
+	left_on = false;
+	right_on = false;
+	
+	LOT = $("#left_on_target")
+	ROT = $("#right_on_target")
+	*/
+	
+	var interval = setInterval(gameloop, 1);
+	
+	function gameloop() {
+	
+		var gp = navigator.getGamepads()[0];
+		// console.log(gp);		
+		
+		if (gp.buttons[1].pressed) {
+			button_press("left_a");
+		}
+		if (gp.buttons[2].pressed) {
+			button_press("left_c");
+		}
+		if (gp.buttons[10].pressed) {
+			button_press("right_a");
+		}
+		if (gp.buttons[11].pressed) {
+			button_press("right_c");
+		}
+		
+	}
+	
+	
+	function interpretEpee2(key){
+		console.log("intepreting epee");
+		if (key=="left_a" && !left_on && (!right_on || last_la - last_right <= epee_lockout_time) && Math.abs(last_la-last_rc) > slop_time) {
+			console.log("LEFT HIT DETECTED.  CHECKING FOR GROUND.")
+			setTimeout(lightWaitPeriod,slop_time,'left_on_target');
+		}
+		else if (key=="right_a" && !right_on && (!left_on || last_ra - last_left <= epee_lockout_time) && Math.abs(last_ra-last_lc) > slop_time) { 
+			console.log("RIGHT HIT DETECTED.  CHECKING FOR GROUND.")
+			setTimeout(lightWaitPeriod,slop_time,'right_on_target');
+		}
+	}		
+	
+	function button_press(key){
+		now = new Date().getTime();
+		if (key=="left_a") last_la = now;
+		else if (key=="right_a") last_ra = now;
+		else if (key=="left_c") last_lc = now;
+		else if (key=="right_c") last_rc = now;
+		// console.log(key)
+		interpretEpee2(key);
+	}
+
+
+	
+</script>
+
 
 <script>
 	<!-- THE FENCING BOX -->
@@ -116,6 +207,7 @@
 			if (Math.abs(last_ra-last_lc) > slop_time) turnOnLight(light);	
 			else console.log("RIGHT HIT WAS TO BELL GUARD.")
 	}
+	
 
 	$(document).keydown(function(e){
 		now = new Date().getTime();
