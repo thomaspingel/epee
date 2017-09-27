@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<title>toggleSwitch</title>
+
+
+<input type="image" src= "off.png" value="play" class ="off" id="btn1" />
+<script> 
+
+buttonClickResult = function (){
+var button = document.getElementById('btn1'); 
+button.onclick = function buttonClicked() 
+{ 
+
+if(button.className=="off") 
+{
+button.className="on"; 
+button.src='on.png'; 
+oscOn (); 
+
+}
+else if(button.className=="on") 
+{ 
+button.className="off"; 
+button.src='off.png'; 
+oscillator.disconnect(); // This method is what disconnects the oscillator. NOT "noteOff"
+} 
+
+} 
+};
+
+buttonClickResult();
+
+
+
+context = new webkitAudioContext(); 
+
+var oscOn = function(){ 
+oscillator = context.createOscillator(), 
+oscillator.type = 2; 
+oscillator.frequency.value = 200;
+gainNode = context.createGainNode(); 
+oscillator.connect(gainNode); 
+gainNode.connect(context.destination); 
+gainNode.gain.value = .1; 
+oscillator.noteOn(0); 
+
+
+
+
+};
+</script>

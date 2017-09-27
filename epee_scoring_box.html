@@ -8,7 +8,7 @@
 		font-size: 10em;
 		text-align: center;
 	}
-	.on_target {
+	.hit_indicator {
 		background-color: black;
 		width: 50%;
 		height: 80%;
@@ -18,315 +18,134 @@
 
 
 </style>
- <script src="http://ajax.aspnetcdn.com/ajax/jQuery/jquery-1.12.2.min.js"></script>
- <!-- <script src="jquery-1.12.2.min.js"></script> -->
+
 </head>
 <body>
-<div id = "timer" style="height:20%; width:100%" onclick="setTime()"></div>
+<!-- <div id = "timer" style="height:20%; width:100%" onclick="setTime()"></div> -->
 <table height="80%" width="100%">
 <tr>
-<td id="left_on_target" class="score on_target">0</td>
-<td id="right_on_target" class="score on_target">0</td>
+<td id="left_light" class="hit_indicator">0</td>
+<td id="right_light" class="hit_indicator">0</td>
 </tr>
 </table>
 
 
+
 <script>
-	<!-- TONE GENERATION -->
-	<!-- Modeled after Violent Theremin (https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API/Using_Web_Audio_API) -->
+	document.getElementById("left_light").style.backgroundColor = "black";
+	document.getElementById("right_light").style.backgroundColor = "black";
+
+	// What buttons is the hardware connected to?
+	var LEFT_A_BUTTON = 0;
+	var LEFT_C_BUTTON = 1;
+	var RIGHT_A_BUTTON = 10;
+	var RIGHT_C_BUTTON = 11;
+	
+	var lightDuration = 2000;
+	
+	LA = false
+	RA = false
+	
+	last_hit_time = 0;
+	
+	function update() {
+		gp = navigator.getGamepads()[0];
+		if (gp != null) {
+			if (gp.buttons[LEFT_A_BUTTON].pressed && LA == false) {
+				LA = true;
+				epee("la",gp.timestamp);
+			}
+			else { LA = false; }
+			if (gp.buttons[RIGHT_A_BUTTON].pressed && RA == false) {
+				RA = true;
+				epee("ra",gp.timestamp);
+			}
+			else { RA = false; }
+		}
+	}
+	setInterval(update,5);
+	
+	function epee(wire,timestamp) {
+		if (wire=="la" && document.getElementById("left_light").style.backgroundColor == "black") {
+			if (document.getElementById("right_light").style.backgroundColor == "black") {
+				turnOnLight('left','red',timestamp);
+			} else {
+				if (timestamp - last_hit_time <= 50) {
+					turnOnLight('left','red',timestamp);
+				} else {
+					// console.log("Too long: ",timestamp - last_hit_time);
+				}
+			}
+		}
+		if (wire=="ra" && document.getElementById("right_light").style.backgroundColor == "black") {
+			if (document.getElementById("left_light").style.backgroundColor == "black") {
+				turnOnLight('right','green',timestamp);
+			} else {
+				if (timestamp - last_hit_time <= 50) {
+					turnOnLight('right','green',timestamp);
+				} else {
+					// console.log("Too long: ",timestamp - last_hit_time);
+				}
+			}
+		}
+	}
+	
+	
+	function turnOnLight(side,color,timestamp){
+		// If we've gotten a signal to turn on a light, but both lights are black, that's a new hit.
+		left_black = document.getElementById("left_light").style.backgroundColor == "black";
+		right_black = document.getElementById("right_light").style.backgroundColor=="black";
+		if (left_black && right_black) {
+			last_hit_time = timestamp;
+			console.log("that's a hit");
+			console.log(last_hit_time);
+			playBuzzer();
+		}
+		
+		if (document.getElementById(side + "_light").style.backgroundColor == "black") {
+			document.getElementById(side + "_light").style.backgroundColor = color;
+			setTimeout(turnOffLights,lightDuration);
+		}
+		
+	}
+	
+	function turnOffLights(){
+		document.getElementById("left_light").style.backgroundColor = "black";	
+		document.getElementById("right_light").style.backgroundColor = "black";	
+	}
+	
+	
+		
+	
+</script>
+
+
+
+<script>
+    /* SOUND HANDLING */
 	
 	var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 	var buzzer = audioCtx.createOscillator();
 	var gainNode = audioCtx.createGain();
-	gainNode.gain.value = 1000;  // Too much?
+	
+
+	gainNode.gain.value = 0.0;  // Set sound "off" initially; turn on when a hit happens.
 
 	buzzer.connect(gainNode);
 	gainNode.connect(audioCtx.destination);
 
 	// set options for the oscillator
 	buzzer.type = 'sine';
-	buzzer.frequency.value = 2000; // value in hertz, should be between about 500 (low tone) to 2000 (high tone)
+	buzzer.frequency.value = 500; // value in hertz, should be between about 500 (low tone) to 2000 (high tone)
 	buzzer.start(0);
 	
-	// audio is initially off
-	audioCtx.suspend();
-
-
-</script>
-
-<script>
-/*
-	var LA = 71;
-	var LB = 68
-	var LC = 82;
-	var RA = 70;
-	var RB = 65;
-	var RC = 83;
-	
-	var SCORELEFT = 33;
-	var SCORERIGHT = 34;
-	var SHIFTKEY = 99999;
-	var shifted = false;
-	
-	var TIMER = 66;
-	time_remaining = 180.0;
-	start_time = 0.0;
-	last_time = 0.0;
-	timer_running = false;
-	var timer_object = [];
-
-	var left_score = 0
-	var right_score = 0
-	var last_score_left = [0,0];
-	var last_score_right = [0,0];
-
-	// Times in ms since the last signal  //TODO add B lines
-	last_la = last_lc = last_ra = last_rc = 0
-	last_left = last_right = 0
-
-	slop_time = 25;
-	light_time = 2000;
-	epee_lockout_time = 45 <!-- Can be 40 to 50 ms -->
-	left_on = false;
-	right_on = false;
-	
-	LOT = $("#left_on_target")
-	ROT = $("#right_on_target")
-	*/
-	
-	var interval = setInterval(gameloop, 1);
-	
-	function gameloop() {
-	
-		var gp = navigator.getGamepads()[0];
-		// console.log(gp);		
-		
-		if (gp.buttons[1].pressed) {
-			button_press("left_a");
-		}
-		if (gp.buttons[2].pressed) {
-			button_press("left_c");
-		}
-		if (gp.buttons[10].pressed) {
-			button_press("right_a");
-		}
-		if (gp.buttons[11].pressed) {
-			button_press("right_c");
-		}
-		
+	function playBuzzer(){
+		// console.log('playing_buzzer');
+		gainNode.gain.value = 1.0;
+		setTimeout(function (){gainNode.gain.value = 0.0;},lightDuration);
 	}
-	
-	
-	function interpretEpee2(key){
-		console.log("intepreting epee");
-		if (key=="left_a" && !left_on && (!right_on || last_la - last_right <= epee_lockout_time) && Math.abs(last_la-last_rc) > slop_time) {
-			console.log("LEFT HIT DETECTED.  CHECKING FOR GROUND.")
-			setTimeout(lightWaitPeriod,slop_time,'left_on_target');
-		}
-		else if (key=="right_a" && !right_on && (!left_on || last_ra - last_left <= epee_lockout_time) && Math.abs(last_ra-last_lc) > slop_time) { 
-			console.log("RIGHT HIT DETECTED.  CHECKING FOR GROUND.")
-			setTimeout(lightWaitPeriod,slop_time,'right_on_target');
-		}
-	}		
-	
-	function button_press(key){
-		now = new Date().getTime();
-		if (key=="left_a") last_la = now;
-		else if (key=="right_a") last_ra = now;
-		else if (key=="left_c") last_lc = now;
-		else if (key=="right_c") last_rc = now;
-		// console.log(key)
-		interpretEpee2(key);
-	}
-
-
-	
 </script>
 
 
-<script>
-	<!-- THE FENCING BOX -->
-	<!-- key assignments -->
-	<!-- a to d: 65 to 68 -->
-	<!-- arrow keys, clockwise left to down, 37 to 40 -->
-	<!-- Left B is 37 --> <!-- Right B is 68 -->
-	var LA = 71;
-	var LB = 68
-	var LC = 82;
-	var RA = 70;
-	var RB = 65;
-	var RC = 83;
-	
-	var SCORELEFT = 33;
-	var SCORERIGHT = 34;
-	var SHIFTKEY = 99999;
-	var shifted = false;
-	
-	var TIMER = 66;
-	time_remaining = 180.0;
-	start_time = 0.0;
-	last_time = 0.0;
-	timer_running = false;
-	var timer_object = [];
-
-	var left_score = 0
-	var right_score = 0
-	var last_score_left = [0,0];
-	var last_score_right = [0,0];
-
-	// Times in ms since the last signal  //TODO add B lines
-	last_la = last_lc = last_ra = last_rc = 0
-	last_left = last_right = 0
-
-	slop_time = 25;
-	light_time = 2000;
-	epee_lockout_time = 45 <!-- Can be 40 to 50 ms -->
-	left_on = false;
-	right_on = false;
-	
-	LOT = $("#left_on_target")
-	ROT = $("#right_on_target")
-	
-	function interpretEpee(keyCode){
-		if (keyCode==LA && !left_on && (!right_on || last_la - last_right <= epee_lockout_time) && Math.abs(last_la-last_rc) > slop_time) {
-			console.log("LEFT HIT DETECTED.  CHECKING FOR GROUND.")
-			setTimeout(lightWaitPeriod,slop_time,'left_on_target');
-		}
-		else if (keyCode==RA && !right_on && (!left_on || last_ra - last_left <= epee_lockout_time) && Math.abs(last_ra-last_lc) > slop_time) { 
-			console.log("RIGHT HIT DETECTED.  CHECKING FOR GROUND.")
-			setTimeout(lightWaitPeriod,slop_time,'right_on_target');
-		}
-	}
-	
-	function lightWaitPeriod(light) {
-		now = new Date().getTime();
-		if (light=='left_on_target')
-			if (Math.abs(last_la-last_rc) > slop_time) turnOnLight(light);
-			else console.log("LEFT HIT WAS TO BELL GUARD.")
-		if (light=='right_on_target')
-			if (Math.abs(last_ra-last_lc) > slop_time) turnOnLight(light);	
-			else console.log("RIGHT HIT WAS TO BELL GUARD.")
-	}
-	
-
-	$(document).keydown(function(e){
-		now = new Date().getTime();
-		key = e.keyCode;
-		if (key==LA) last_la = now;
-		else if (key==RA) last_ra = now;
-		else if (key==LC) last_lc = now;
-		else if (key==RC) last_rc = now;
-		else if (key==SCORELEFT) {
-			(last_score_left.shift()); 
-			last_score_left.push(now);
-		}
-		else if (key==SCORERIGHT) {
-			(last_score_right.shift());
-			last_score_right.push(now);
-		}
-		else if (key==TIMER) {
-			if (!timer_running) last_time = now;
-			timer_running = !timer_running;
-		}
-		console.log("key ",key," at time ",now)
-		interpretEpee(key);
-	});
-	
-	$(document).keyup(function(e){
-		now = new Date().getTime();
-		key = e.keyCode;
-		if (key==SCORELEFT) {
-			interpretScore(key);
-		}
-		else if (key==SCORERIGHT) {
-			interpretScore(key);
-		}
-		else if (key==SHIFTKEY) {
-			shifted=!shifted;
-		}
-	});
-	
-
-	function turnOnLight(light) {
-		if (!left_on && !right_on) {
-			setTimeout(turnOffLights, light_time);
-			audioCtx.resume();
-		}
-		if (light=='left_on_target') {
-			last_left = last_la;
-			left_on = true;
-			$("#left_on_target").css('background-color','red');
-			console.log("LEFT HIT AT",last_left)
-		}
-		if (light=='right_on_target') {
-			last_right = last_ra
-			right_on = true;
-			$("#right_on_target").css('background-color','green');
-			console.log("RIGHT HIT AT",last_right)
-		}
-		// console.log("Time difference between hits was",Math.abs(last_la - last_ra))
-	}
-	
-	function turnOffLights(){
-		LOT.css('background-color','black');
-		ROT.css('background-color','black');
-		audioCtx.suspend();
-		left_on = false
-		right_on = false
-		console.log('--------------------------------------');
-	}
-	
-	function interpretScore(key){
-		if (key==SCORELEFT) {
-			if (last_score_left[1] - last_score_left[0] > 75) left_score = left_score + 1;
-			else left_score = left_score - 1;
-		}
-		else if (key==SCORERIGHT) {
-			if (last_score_right[1] - last_score_right[0] > 75) right_score = right_score + 1;
-			else right_score = right_score - 1;
-		}
-		document.getElementById("left_on_target").innerHTML = left_score;
-		document.getElementById("right_on_target").innerHTML = right_score;
-	}
-	
-	function turnOffBuzzer(){
-		audioCtx.suspend();
-	}
-	
-	
-	function format_time(d) {
-		d = Number(d);
-		var h = Math.floor(d / 3600);
-		var m = Math.floor(d % 3600 / 60);
-		var s = Math.floor(d % 3600 % 60);
-		var ds = Math.ceil(100*d);
-		return (m + ":" + (s < 10 ? "0" : "") + s + (d < 1 ? "." + (ds < 10 ? "0" : "") + ds: ""))
-	}
-	
-	time_object = setInterval(timer,.1);	
-	function timer(){
-		if (timer_running) {
-			now = new Date().getTime();
-			time_elapsed = (now - last_time) / 1000;
-			last_time = now;
-			time_remaining = time_remaining - time_elapsed;
-		}
-		if (time_remaining <= 0) {
-			time_remaining = 0;
-			timer_running = false;
-			audioCtx.resume();
-			setTimeout(turnOffBuzzer,light_time);
-			clearInterval(timerObject)
-		}
-		document.getElementById("timer").innerHTML = format_time(time_remaining);
-	}
-	
-	function setTime(){
-		var t = prompt("Input new time m:ss");
-		time_remaining = Number(t.split(':')[0])*60 + Number(t.split(':')[1])
-	}
-
-	
-</script>
 </body>
 </html>
