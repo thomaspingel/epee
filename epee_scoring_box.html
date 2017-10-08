@@ -22,10 +22,19 @@
 </head>
 <body>
 <div id = "timer" style="height:25%; width:100%" onclick="setTime()"></div>
-<table height="80%" width="100%">
+<div style="height:5%;"></div>
+<table border=5 height="70%" width="100%">
+<tr>
+<td align="center" onclick="changeScore('left',1)">+</td>
+<td align="center" onclick="changeScore('right',1)">+</td>
+</tr>
 <tr>
 <td id="left_light" class="hit_indicator" onclick="changeScore('left',-1)">0</td>
 <td id="right_light" class="hit_indicator" onclick="changeScore('right',-1)">0</td>
+</tr>
+<tr>
+<td align="center" onclick="changeScore('left',-1)">-</td>
+<td align="center" onclick="changeScore('right',-1)">-</td>
 </tr>
 </table>
 
@@ -46,6 +55,11 @@
 	
 	var lightDuration = 2000;
 	
+	var pauseTime=500; // Time after the lights go out that no new hit will register
+	var betweenTouches = false;
+	
+	var buzzerPlaying = false;
+	
 	var SHIFTKEY = 16;  // Left Shift
 	var TIMER = 32; // Space
 	var shifted = false;
@@ -60,7 +74,7 @@
 	// Using Date for the timestamp, since gp.timestamp seems to lack the resolution needed.
 	function update() {
 		gp = navigator.getGamepads()[0];
-		if (gp != null) {
+		if (gp != null && !betweenTouches) {
 			if (gp.buttons[LEFT_C_BUTTON].pressed && LC == false) {
 				LC = true;
 				console.log("LC" + LC)
@@ -115,20 +129,26 @@
 	
 	
 	function turnOnLight(side,color,timestamp){
+		console.log("Turning on the Lights: ",side,",",color,",",timestamp);
+		opposite_side = (side=="left" ? "right" : "left")
+
 		// If we've gotten a signal to turn on a light, but both lights are black, that's a new hit.
 		left_black = document.getElementById("left_light").style.backgroundColor == "black";
 		right_black = document.getElementById("right_light").style.backgroundColor=="black";
+		
+		// If both sides are currently black, that's a new hit.  Start the buzzer and set a timer to turn off the lights.
 		if (left_black && right_black) {
 			last_hit_time = timestamp;
-			console.log("that's a hit");
-			console.log(last_hit_time);
-			playBuzzer(lightDuration);
-		}
-		
-		if (document.getElementById(side + "_light").style.backgroundColor == "black") {
-			document.getElementById(side + "_light").style.backgroundColor = color;
+			console.log("New Hit Detected.");
+			if (!buzzerPlaying) {
+				playBuzzer(lightDuration)
+			};
 			setTimeout(turnOffLights,lightDuration);
 		}
+		
+		// Then turn the light on.
+		document.getElementById(side + "_light").style.backgroundColor = color;
+		
 		
 	}
 	
@@ -138,10 +158,14 @@
 			(LA ? changeScore('left',-1) : changeScore('left',1))
 			document.getElementById("left_light").style.backgroundColor = "black";
 		}
-		document.getElementById("right_light").style.backgroundColor = "black";	
-		LA = false;
-		RA = false;
+		if (document.getElementById("right_light").style.backgroundColor == "green") {
+			(RA ? changeScore('right',-1) : changeScore('right',1))
+			document.getElementById("right_light").style.backgroundColor = "black";
+		}
+		betweenTouches = true;
+		setTimeout(function(){betweenTouches=false;},pauseTime);
 	}
+	
 	
 	document.addEventListener("keydown",function(e) {
 		// For testing purposes, pretend "l" simulates LA, and "r" simulates RA
@@ -178,6 +202,8 @@
 	document.addEventListener("keyup",function(e) {
 		key = e.keyCode;
 		if (key==SHIFTKEY) shifted = false;
+		if (key==76) LA = false;
+		if (key==82) RA = false;
 	});
 	
 	function setTime(){
@@ -222,7 +248,7 @@
 	var gainNode = audioCtx.createGain();
 	
 
-	gainNode.gain.value = 0.0;  // Set sound "off" initially; turn on when a hit happens.
+	gainNode.gain.value = 0.001;  // Set sound "off" initially; turn on when a hit happens.
 
 	buzzer.connect(gainNode);
 	gainNode.connect(audioCtx.destination);
@@ -239,11 +265,10 @@
 	
 
 	function playBuzzer(duration){
-		
-		// buzzer.frequency.value = frequency;
-		// console.log('playing_buzzer');
+		buzzerPlaying = true;
+		console.log('Playing Buzzer');
 		gainNode.gain.value = 1.0;
-		setTimeout(function (){gainNode.gain.value = 0.0;},duration);
+		setTimeout(function (){gainNode.gain.value = 0.001;buzzerPlaying=false;},duration);
 	}
 </script>
 

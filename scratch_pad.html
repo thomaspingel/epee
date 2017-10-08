@@ -1,0 +1,172 @@
+<html>
+<head>
+<title>Pingel's Epee Scoring Box</title>
+<style>
+	body {
+		background-color: black;
+		color: yellow;
+		font-size: 10em;
+		text-align: center;
+	}
+	.hit_indicator {
+		background-color: black;
+		width: 50%;
+		height: 80%;
+		text-align: center;
+		font-size: 10em;
+    }
+
+
+</style>
+<script>
+    /* SOUND HANDLING */
+		var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+		var gainNode = audioCtx.createGain();
+		gainNode.gain.value = 1.0;
+		gainNode.connect(audioCtx.destination);
+		var buzzer = audioCtx.createOscillator();
+		buzzer.type = 'sine';
+		gainNode.gain.value = 0.001;
+		buzzer.frequency.value = 500; // value in hertz, should be between about 500 (low tone) to 2000 (high tone)
+		buzzer.connect(gainNode)
+		buzzer.start(0);
+		
+	function playBuzzer(){
+		console.log('Playing Buzzer.');
+		gainNode.gain.value=1;
+
+
+		setTimeout(function (){gainNode.gain.value=0.001;buzzerPlaying=false;},2000);
+	}
+	
+	setInterval(function(){buzzer.frequency.value=500;},1000);
+</script>
+
+
+</head>
+<body>
+<table height="75%" width="100%">
+<tr>
+<td id="left_light" class="hit_indicator">0</td>
+<td id="right_light" class="hit_indicator">0</td>
+</tr>
+</table>
+
+
+
+<script>
+	document.getElementById("left_light").style.backgroundColor = "black";
+	document.getElementById("right_light").style.backgroundColor = "black";
+	
+	
+	// What buttons is the hardware connected to?
+	var LEFT_A_BUTTON = 0;
+	var LEFT_C_BUTTON = 1;
+	var RIGHT_A_BUTTON = 10;
+	var RIGHT_C_BUTTON = 11;
+	
+	var lightDuration = 2000;
+	var buzzerPlaying = false;
+	
+	LA = false
+	RA = false
+	LC = false
+	RC = false
+	
+	last_hit_time = 0;
+	
+	// Using Date for the timestamp, since gp.timestamp seems to lack the resolution needed.
+	function update() {
+		gp = navigator.getGamepads()[0];
+		if (gp != null) {
+			if (gp.buttons[LEFT_A_BUTTON].pressed && !buzzerPlaying) {buzzerPlaying=true; playBuzzer();}
+		/*
+			if (gp.buttons[LEFT_C_BUTTON].pressed && LC == false) {
+				LC = true;
+				console.log("LC" + LC)
+			}
+			else { LC = false; }
+			if (gp.buttons[RIGHT_C_BUTTON].pressed && RC == false) {
+				RC = true;
+				console.log("RC" + RC)
+			}
+			else { RC = false; }
+			if (gp.buttons[LEFT_A_BUTTON].pressed && LA == false) {
+				LA = true;
+				epee("la",new Date().getTime());
+			}
+			else { LA = false; }
+			if (gp.buttons[RIGHT_A_BUTTON].pressed && RA == false) {
+				RA = true;
+				epee("ra",new Date().getTime());
+			}
+			else { RA = false; }
+		*/
+		}
+	}
+	setInterval(update,5);
+	
+	document.addEventListener("keydown",function(e) {
+		now = new Date().getTime();
+		key = e.keyCode;
+		if (key==32 && !buzzerPlaying) { buzzerPlaying=true;playBuzzer();}
+	});
+	
+	function epee(wire,timestamp) {
+		console.log('Checking Epee Logic');
+		if (wire=="la" && document.getElementById("left_light").style.backgroundColor == "black" && !RC) {
+			if (document.getElementById("right_light").style.backgroundColor == "black") {
+				turnOnLight('left','red',timestamp);
+			} else {
+				if (timestamp - last_hit_time <= 50) {
+					turnOnLight('left','red',timestamp);
+				}
+			}
+		}
+		if (wire=="ra" && document.getElementById("right_light").style.backgroundColor == "black" && !LC) {
+			if (document.getElementById("left_light").style.backgroundColor == "black") {
+				turnOnLight('right','green',timestamp);
+			} else {
+				if (timestamp - last_hit_time <= 50) {
+					turnOnLight('right','green',timestamp);
+				}
+			}
+		}
+	}
+	
+	
+	function turnOnLight(side,color,timestamp){
+		console.log("Turning on the Lights: ",side,",",color,",",timestamp);
+		
+		opposite_side = (side=="left" ? "right" : "left")
+		// If we've gotten a signal to turn on a light, but both lights are black, that's a new hit.
+		left_black = document.getElementById("left_light").style.backgroundColor == "black";
+		right_black = document.getElementById("right_light").style.backgroundColor=="black";
+		if (left_black && right_black) {
+			last_hit_time = timestamp;
+			playBuzzer();
+		}
+		
+		if (document.getElementById(side + "_light").style.backgroundColor == "black") {
+			document.getElementById(side + "_light").style.backgroundColor = color;
+			opposite_side_off = document.getElementById(opposite_side + "_light").style.backgroundColor == "black"
+			if (opposite_side_off) {setTimeout(turnOffLights,lightDuration);}
+		}
+		
+	}
+	
+	function turnOffLights(){
+		console.log('turning off the lights');
+		document.getElementById("left_light").style.backgroundColor = "black";	
+		document.getElementById("right_light").style.backgroundColor = "black";	
+	}
+		
+	
+</script>
+
+
+
+
+
+</body>
+</html>
