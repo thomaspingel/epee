@@ -21,11 +21,11 @@
 
 </head>
 <body>
-<!-- <div id = "timer" style="height:20%; width:100%" onclick="setTime()"></div> -->
+<div id = "timer" style="height:25%; width:100%" onclick="setTime()"></div>
 <table height="80%" width="100%">
 <tr>
-<td id="left_light" class="hit_indicator">0</td>
-<td id="right_light" class="hit_indicator">0</td>
+<td id="left_light" class="hit_indicator" onclick="changeScore('left',-1)">0</td>
+<td id="right_light" class="hit_indicator" onclick="changeScore('right',-1)">0</td>
 </tr>
 </table>
 
@@ -34,7 +34,10 @@
 <script>
 	document.getElementById("left_light").style.backgroundColor = "black";
 	document.getElementById("right_light").style.backgroundColor = "black";
-
+	
+	time_remaining = 180.0;
+	timer_running = false;
+	
 	// What buttons is the hardware connected to?
 	var LEFT_A_BUTTON = 0;
 	var LEFT_C_BUTTON = 1;
@@ -43,22 +46,39 @@
 	
 	var lightDuration = 2000;
 	
+	var SHIFTKEY = 16;  // Left Shift
+	var TIMER = 32; // Space
+	var shifted = false;
+	
 	LA = false
 	RA = false
+	LC = false
+	RC = false
 	
 	last_hit_time = 0;
 	
+	// Using Date for the timestamp, since gp.timestamp seems to lack the resolution needed.
 	function update() {
 		gp = navigator.getGamepads()[0];
 		if (gp != null) {
+			if (gp.buttons[LEFT_C_BUTTON].pressed && LC == false) {
+				LC = true;
+				console.log("LC" + LC)
+			}
+			else { LC = false; }
+			if (gp.buttons[RIGHT_C_BUTTON].pressed && RC == false) {
+				RC = true;
+				console.log("RC" + RC)
+			}
+			else { RC = false; }
 			if (gp.buttons[LEFT_A_BUTTON].pressed && LA == false) {
 				LA = true;
-				epee("la",gp.timestamp);
+				epee("la",new Date().getTime());
 			}
 			else { LA = false; }
 			if (gp.buttons[RIGHT_A_BUTTON].pressed && RA == false) {
 				RA = true;
-				epee("ra",gp.timestamp);
+				epee("ra",new Date().getTime());
 			}
 			else { RA = false; }
 		}
@@ -66,26 +86,29 @@
 	setInterval(update,5);
 	
 	function epee(wire,timestamp) {
-		if (wire=="la" && document.getElementById("left_light").style.backgroundColor == "black") {
+		if (wire=="la" && document.getElementById("left_light").style.backgroundColor == "black" && !RC) {
 			if (document.getElementById("right_light").style.backgroundColor == "black") {
 				turnOnLight('left','red',timestamp);
 			} else {
 				if (timestamp - last_hit_time <= 50) {
 					turnOnLight('left','red',timestamp);
-				} else {
-					// console.log("Too long: ",timestamp - last_hit_time);
 				}
+				/* else {
+					console.log("Too long: ",timestamp - last_hit_time);
+				} */
 			}
 		}
-		if (wire=="ra" && document.getElementById("right_light").style.backgroundColor == "black") {
+		if (wire=="ra" && document.getElementById("right_light").style.backgroundColor == "black" && !LC) {
 			if (document.getElementById("left_light").style.backgroundColor == "black") {
 				turnOnLight('right','green',timestamp);
 			} else {
 				if (timestamp - last_hit_time <= 50) {
 					turnOnLight('right','green',timestamp);
-				} else {
+				}
+				/* else {
 					// console.log("Too long: ",timestamp - last_hit_time);
 				}
+				*/
 			}
 		}
 	}
@@ -99,7 +122,7 @@
 			last_hit_time = timestamp;
 			console.log("that's a hit");
 			console.log(last_hit_time);
-			playBuzzer();
+			playBuzzer(lightDuration);
 		}
 		
 		if (document.getElementById(side + "_light").style.backgroundColor == "black") {
@@ -110,12 +133,82 @@
 	}
 	
 	function turnOffLights(){
-		document.getElementById("left_light").style.backgroundColor = "black";	
+		console.log('turning off the lights');
+		if (document.getElementById("left_light").style.backgroundColor == "red") {
+			(LA ? changeScore('left',-1) : changeScore('left',1))
+			document.getElementById("left_light").style.backgroundColor = "black";
+		}
 		document.getElementById("right_light").style.backgroundColor = "black";	
+		LA = false;
+		RA = false;
 	}
 	
-	
+	document.addEventListener("keydown",function(e) {
+		// For testing purposes, pretend "l" simulates LA, and "r" simulates RA
+		key = e.keyCode;
+		console.log(key)
+		// left and right keys
+		if (key==76 && LA == false) {
+			LA = true;
+			epee("la",new Date().getTime());
+		}
+		if (key==82 && RA == false) {
+			RA = true;
+			epee("ra",new Date().getTime());
+		}
+		// Plus and minus keys adjust tone frequency
+		if (key==107) { buzzer.frequency.value += 50; }
+		if (key==109) { buzzer.frequency.value -= 50; }
 		
+		if (key==37) (shifted ? changeScore("left",-1) : changeScore("left",1))
+		if (key==39) (shifted ? changeScore("right",-1) : changeScore("right",1))
+		if (key==SHIFTKEY) shifted = true;
+		if (key==TIMER) {
+			if (!timer_running) last_time = new Date().getTime();;
+			timer_running = !timer_running;
+		}
+	});
+	
+	function changeScore(side,amount){
+		element = document.getElementById(side + "_light");
+		element.innerHTML = parseInt(element.innerHTML) + amount;
+		playBuzzer(75);
+	}
+	
+	document.addEventListener("keyup",function(e) {
+		key = e.keyCode;
+		if (key==SHIFTKEY) shifted = false;
+	});
+	
+	function setTime(){
+		var t = prompt("Input new time m:ss");
+		time_remaining = Number(t.split(':')[0])*60 + Number(t.split(':')[1]);
+	}	
+	
+	function format_time(d) {
+		d = Number(d);
+		var h = Math.floor(d / 3600);
+		var m = Math.floor(d % 3600 / 60);
+		var s = Math.floor(d % 3600 % 60);
+		var ds = Math.ceil(100*d);
+		return (m + ":" + (s < 10 ? "0" : "") + s + (d < 1 ? "." + (ds < 10 ? "0" : "") + ds: ""))
+	}
+
+	time_object = setInterval(timer,.1);	
+	function timer(){
+		if (timer_running) {
+			now = new Date().getTime();
+			time_elapsed = (now - last_time) / 1000;
+			last_time = now;
+			time_remaining = time_remaining - time_elapsed;
+			if (time_remaining <= 0) {
+				time_remaining = 0;
+				timer_running = false;
+				playBuzzer(3000);
+			}
+		}
+		document.getElementById("timer").innerHTML = format_time(time_remaining);
+	}
 	
 </script>
 
@@ -139,10 +232,18 @@
 	buzzer.frequency.value = 500; // value in hertz, should be between about 500 (low tone) to 2000 (high tone)
 	buzzer.start(0);
 	
-	function playBuzzer(){
+	// playBuzzer works by setting the gain value to 1 (maximum) and starting a timer of lightDuration to set the gain value
+	// back to zero (off)
+	
+	
+	
+
+	function playBuzzer(duration){
+		
+		// buzzer.frequency.value = frequency;
 		// console.log('playing_buzzer');
 		gainNode.gain.value = 1.0;
-		setTimeout(function (){gainNode.gain.value = 0.0;},lightDuration);
+		setTimeout(function (){gainNode.gain.value = 0.0;},duration);
 	}
 </script>
 
